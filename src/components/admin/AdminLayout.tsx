@@ -3,7 +3,7 @@ import {
   LayoutDashboard, BookOpen, Layers, ShoppingBag, AlertCircle,
   Users, Truck, Layout, Target, CreditCard, FileText, Palette,
   ShieldCheck, LogOut, ExternalLink, ArrowRight, Menu, X,
-  FileCode, Video, Share2
+  FileCode, Video, Share2, CloudLightning, ShoppingCart
 } from 'lucide-react';
 import {
   Order, AbandonedCart, Book, Category, Wilaya, Customer,
@@ -27,10 +27,13 @@ import { AdminSecurity } from './AdminSecurity';
 import { AdminArticles } from './AdminArticles';
 import { AdminVideos } from './AdminVideos';
 import { AdminSocialSettings } from './AdminSocialSettings';
+import { AdminPosSales } from './AdminPosSales';
+import { AdminSanitySync } from './AdminSanitySync';
 
 interface AdminLayoutProps {
   onBackToStore: () => void;
   onLogout: () => void;
+  onOpenPosTerminal: () => void;
   orders: Order[];
   abandonedCarts: AbandonedCart[];
   books: Book[];
@@ -52,6 +55,7 @@ interface AdminLayoutProps {
 export const AdminLayout: React.FC<AdminLayoutProps> = ({
   onBackToStore,
   onLogout,
+  onOpenPosTerminal,
   orders,
   abandonedCarts,
   books,
@@ -74,9 +78,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
   const pendingOrdersCount = orders.filter(o => o.orderStatus === 'new').length;
   const abandonedCount = abandonedCarts.filter(c => !c.recovered).length;
+  const posOrdersCount = orders.filter(o => o.orderType === 'pos').length;
 
   const navItems = [
     { id: 'overview', label: 'لوحة التحكم العامة', icon: LayoutDashboard },
+    { id: 'sanity_sync', label: 'الربط السحابي Sanity CMS', icon: CloudLightning, badge: 'آلي', badgeColor: 'bg-emerald-600' },
+    { id: 'pos_sales', label: 'مبيعات الـ POS والمعارض', icon: ShoppingBag, badge: posOrdersCount > 0 ? posOrdersCount : undefined, badgeColor: 'bg-amber-600' },
     { id: 'books', label: 'المنتجات والكتب', icon: BookOpen, badge: books.length },
     { id: 'articles', label: 'المقالات (حماية النسخ)', icon: FileCode, badge: articles.length },
     { id: 'videos', label: 'الفيديوهات والندوات', icon: Video, badge: videos.length },
@@ -187,6 +194,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
           <div className="flex items-center gap-3">
             <button
+              onClick={onOpenPosTerminal}
+              className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
+              title="فتح كاشير نقطة البيع ومعارض الكتاب"
+            >
+              <ShoppingCart className="w-3.5 h-3.5 text-emerald-200" />
+              <span>كاشير المعارض POS</span>
+            </button>
+
+            <button
               onClick={onBackToStore}
               className="px-3.5 py-1.5 bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors"
             >
@@ -213,6 +229,21 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
               books={books}
               customers={customers}
               onNavigateTab={(tab) => setActiveTab(tab)}
+            />
+          )}
+
+          {activeTab === 'sanity_sync' && (
+            <AdminSanitySync
+              books={books}
+              orders={orders}
+              onRefreshAll={onRefreshAll}
+            />
+          )}
+
+          {activeTab === 'pos_sales' && (
+            <AdminPosSales
+              orders={orders}
+              onOpenPosTerminal={onOpenPosTerminal}
             />
           )}
 

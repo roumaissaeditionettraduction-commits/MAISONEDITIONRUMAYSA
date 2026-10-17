@@ -8,6 +8,7 @@ interface NavbarProps {
   onNavigateHome: () => void;
   onNavigateLanding: () => void;
   onNavigateAdmin: () => void;
+  onNavigatePos: () => void;
   onSelectCategory: (catId: string) => void;
   onScrollToSection: (sectionId: string) => void;
   storeSettings: StoreSettings;
@@ -21,6 +22,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigateHome,
   onNavigateLanding,
   onNavigateAdmin,
+  onNavigatePos,
   onSelectCategory,
   onScrollToSection,
   storeSettings,
@@ -140,6 +142,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span>واتساب</span>
           </button>
 
+          {/* POS Terminal access button */}
+          <button
+            onClick={onNavigatePos}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors whitespace-nowrap border border-emerald-300 shadow-2xs"
+            title="نقطة البيع ومعارض الكتاب POS"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
+            <span>نقطة البيع POS</span>
+          </button>
+
           {/* Admin access button */}
           <button
             onClick={onNavigateAdmin}
@@ -222,7 +234,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>محادثة واتساب مباشرة</span>
               <MessageCircle className="w-4 h-4 text-emerald-600" />
             </button>
-            <div className="pt-2 border-t border-stone-200">
+            <div className="pt-2 border-t border-stone-200 space-y-2">
+              <button
+                onClick={() => { onNavigatePos(); setMobileMenuOpen(false); }}
+                className="w-full text-right py-2.5 px-3 rounded-md bg-emerald-800 text-white font-bold flex items-center justify-between shadow-2xs"
+              >
+                <span>نقطة البيع ومعارض الكتاب POS</span>
+                <BookOpen className="w-4 h-4 text-emerald-300" />
+              </button>
+
               <button
                 onClick={() => { onNavigateAdmin(); setMobileMenuOpen(false); }}
                 className="w-full text-right py-2.5 px-3 rounded-md bg-stone-900 text-white flex items-center justify-between"

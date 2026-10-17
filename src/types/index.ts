@@ -31,6 +31,8 @@ export interface Book {
   isNewRelease?: boolean;
   isFeatured?: boolean;
   tags: string[];
+  sanityId?: string;
+  lastSyncedAt?: string;
 }
 
 export interface Category {
@@ -53,11 +55,13 @@ export interface OrderItem {
 
 export type OrderStatus = 'new' | 'confirmed' | 'processing' | 'shipping' | 'shipped' | 'delivered' | 'cancelled';
 export type PaymentStatus = 'pending' | 'paid' | 'failed';
-export type PaymentMethod = 'cod' | 'chargily';
+export type PaymentMethod = 'cod' | 'chargily' | 'cash' | 'dahabia' | 'tpe';
+export type OrderType = 'online' | 'pos';
 
 export interface Order {
   id: string;
   orderNumber: string;
+  orderType?: OrderType; // 'online' or 'pos'
   customerName: string;
   phone: string;
   email?: string;
@@ -79,6 +83,19 @@ export interface Order {
   downloadToken?: string;
   downloadCount?: number;
   notes?: string;
+
+  // POS (Point of Sale) fields
+  posCashierName?: string;
+  posStandLocation?: string; // e.g., 'معرض الجزائر الدولي للكتاب SILA'
+  posDiscountAmount?: number;
+  posAmountPaid?: number; // Cash given by buyer
+  posChangeDue?: number;  // Change returned
+  posReceiptNumber?: string;
+
+  // Sanity Cloud Sync metadata
+  syncedToSanity?: boolean;
+  sanityId?: string;
+  lastSyncedAt?: string;
 }
 
 export interface AbandonedCart {
@@ -226,4 +243,27 @@ export interface SocialLinks {
   whatsappDefaultMsg: string;
   showFloatingWhatsApp: boolean;
   antiCopyGlobalEnabled: boolean;
+}
+
+// Sanity CMS Cloud Synchronization
+export interface SanityConfig {
+  projectId: string;
+  dataset: string;
+  apiVersion: string;
+  apiToken: string; // Token with Editor/Write access
+  useCdn: boolean;
+  autoSyncOnSave: boolean; // Auto sync on every book edit or POS sale
+  syncPosSales: boolean;
+  isConnected?: boolean;
+  lastSyncTime?: string;
+  autoPullIntervalMinutes?: number; // 0 for off, e.g. 5 min
+}
+
+export interface SanitySyncLog {
+  id: string;
+  timestamp: string;
+  action: 'push_book' | 'pull_books' | 'push_pos_sale' | 'batch_sync' | 'test_connection' | 'error';
+  status: 'success' | 'failed' | 'pending';
+  details: string;
+  count?: number;
 }

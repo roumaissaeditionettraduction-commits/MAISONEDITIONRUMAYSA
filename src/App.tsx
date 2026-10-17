@@ -27,6 +27,8 @@ import { VisitorCounter } from './components/VisitorCounter';
 
 import { AdminLayout } from './components/admin/AdminLayout';
 import { AdminLoginModal } from './components/admin/AdminLoginModal';
+import { PosTerminal } from './components/pos/PosTerminal';
+import { SanityService } from './services/sanityService';
 
 export default function App() {
   // Global Data State
@@ -48,7 +50,7 @@ export default function App() {
   const [socialLinks, setSocialLinks] = useState<SocialLinks>(StorageService.getSocialLinks());
 
   // Navigation & View State
-  const [currentView, setCurrentView] = useState<'store' | 'admin' | 'landing'>('store');
+  const [currentView, setCurrentView] = useState<'store' | 'admin' | 'landing' | 'pos'>('store');
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(StorageService.isAdminLoggedIn());
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
@@ -92,7 +94,47 @@ export default function App() {
   useEffect(() => {
     window.addEventListener('roumaissa-storage-updated', refreshAllData);
     PixelService.trackPageView('الصفحة الرئيسية لدار رميسة');
-    return () => window.removeEventListener('roumaissa-storage-updated', refreshAllData);
+
+    // Dedicated URL hash and route listener (/admin, /pos, /landing, etc.)
+    const handleUrlRoute = () => {
+      const hash = window.location.hash.toLowerCase();
+      const path = window.location.pathname.toLowerCase();
+
+      if (hash === '#admin' || hash === '#dashboard' || path === '/admin' || path === '/dashboard') {
+        if (StorageService.isAdminLoggedIn()) {
+          setCurrentView('admin');
+        } else {
+          setIsLoginModalOpen(true);
+        }
+      } else if (hash === '#pos' || path === '/pos') {
+        setCurrentView('pos');
+      } else if (hash === '#landing' || path === '/landing') {
+        setCurrentView('landing');
+      } else if (hash === '#store' || hash === '' || path === '/') {
+        setCurrentView('store');
+      }
+    };
+
+    handleUrlRoute();
+    window.addEventListener('hashchange', handleUrlRoute);
+    window.addEventListener('popstate', handleUrlRoute);
+
+    // Automated Real-Time Background sync with Sanity CMS
+    const sanityCfg = SanityService.getConfig();
+    if (sanityCfg.projectId && sanityCfg.dataset) {
+      SanityService.fetchBooks().then((res) => {
+        if (res.success && res.books.length > 0) {
+          StorageService.saveBooks(res.books);
+          setBooks(res.books);
+        }
+      }).catch(() => {});
+    }
+
+    return () => {
+      window.removeEventListener('roumaissa-storage-updated', refreshAllData);
+      window.removeEventListener('hashchange', handleUrlRoute);
+      window.removeEventListener('popstate', handleUrlRoute);
+    };
   }, []);
 
   // Cart Management
@@ -202,11 +244,18 @@ export default function App() {
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 font-sans flex flex-col justify-between selection:bg-amber-100 selection:text-amber-900">
       
-      {/* View Router: Admin Dashboard View */}
-      {currentView === 'admin' ? (
+      {/* View Router: POS Cashier Terminal, Admin Dashboard, Landing Page, or Storefront */}
+      {currentView === 'pos' ? (
+        <PosTerminal
+          books={books}
+          onBackToStore={() => setCurrentView('store')}
+          onNavigateAdmin={handleNavigateAdmin}
+        />
+      ) : currentView === 'admin' ? (
         <AdminLayout
           onBackToStore={() => setCurrentView('store')}
           onLogout={handleLogout}
+          onOpenPosTerminal={() => setCurrentView('pos')}
           orders={orders}
           abandonedCarts={abandonedCarts}
           books={books}
@@ -252,6 +301,7 @@ export default function App() {
             }}
             onNavigateLanding={() => setCurrentView('landing')}
             onNavigateAdmin={handleNavigateAdmin}
+            onNavigatePos={() => setCurrentView('pos')}
             onSelectCategory={(catId) => {
               setSelectedCategory(catId);
               document.getElementById('catalog-section')?.scrollIntoView({ behavior: 'smooth' });

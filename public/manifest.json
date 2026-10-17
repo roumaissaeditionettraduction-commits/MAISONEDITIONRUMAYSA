@@ -1,0 +1,19 @@
+{
+  "short_name": "دار رميسة",
+  "name": "دار رميسة للنشر والتوزيع - المتجر ونظام POS",
+  "description": "منصة دار النشر والترجمة والتوزيع رميسة إيديسيو: متجر كتب فاخر، بيع ورقي وإلكتروني ePub، كاشير معارض الكتاب POS، وبوابات شارجلي باي.",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#1c1917",
+  "theme_color": "#1c1917",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "dir": "rtl",
+  "lang": "ar"
+}

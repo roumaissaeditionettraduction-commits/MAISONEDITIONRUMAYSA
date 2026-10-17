@@ -9,6 +9,7 @@ import {
   INITIAL_PIXEL_SETTINGS, INITIAL_CHARGILY_CONFIG, INITIAL_EPUB_SETTINGS,
   INITIAL_STORE_SETTINGS, INITIAL_ARTICLES, INITIAL_VIDEOS, INITIAL_SOCIAL_LINKS
 } from '../data/initialData';
+import { SanityService } from './sanityService';
 
 const STORAGE_KEYS = {
   BOOKS: 'roumaissa_books_v1',
@@ -60,18 +61,36 @@ export const StorageService = {
     const books = StorageService.getBooks();
     const updated = [book, ...books];
     save(STORAGE_KEYS.BOOKS, updated);
+    
+    // Auto-sync to Sanity CMS if enabled
+    const config = SanityService.getConfig();
+    if (config.autoSyncOnSave && config.projectId && config.apiToken) {
+      SanityService.pushBook(book).catch(() => {});
+    }
     return updated;
   },
   updateBook: (book: Book) => {
     const books = StorageService.getBooks();
     const updated = books.map(b => b.id === book.id ? book : b);
     save(STORAGE_KEYS.BOOKS, updated);
+
+    // Auto-sync to Sanity CMS if enabled
+    const config = SanityService.getConfig();
+    if (config.autoSyncOnSave && config.projectId && config.apiToken) {
+      SanityService.pushBook(book).catch(() => {});
+    }
     return updated;
   },
   deleteBook: (id: string) => {
     const books = StorageService.getBooks();
     const updated = books.filter(b => b.id !== id);
     save(STORAGE_KEYS.BOOKS, updated);
+
+    // Auto-delete from Sanity CMS if enabled
+    const config = SanityService.getConfig();
+    if (config.autoSyncOnSave && config.projectId && config.apiToken) {
+      SanityService.deleteBook(id).catch(() => {});
+    }
     return updated;
   },
 
@@ -89,29 +108,58 @@ export const StorageService = {
     return updated;
   },
 
-  // Orders
+  // Orders & POS Sales
   getOrders: (): Order[] => load<Order[]>(STORAGE_KEYS.ORDERS, INITIAL_ORDERS),
+  getPosOrders: (): Order[] => StorageService.getOrders().filter(o => o.orderType === 'pos'),
+  getOnlineOrders: (): Order[] => StorageService.getOrders().filter(o => o.orderType !== 'pos'),
   saveOrders: (orders: Order[]) => save(STORAGE_KEYS.ORDERS, orders),
   addOrder: (order: Order) => {
     const orders = StorageService.getOrders();
     const updated = [order, ...orders];
     save(STORAGE_KEYS.ORDERS, updated);
 
+    // If POS order, decrement book stock in store
+    if (order.orderType === 'pos' && order.items && order.items.length > 0) {
+      const currentBooks = StorageService.getBooks();
+      let stockChanged = false;
+      const updatedBooks = currentBooks.map(b => {
+        const orderItem = order.items.find(i => i.bookId === b.id && i.format === 'print');
+        if (orderItem) {
+          stockChanged = true;
+          return {
+            ...b,
+            stock: Math.max(0, b.stock - orderItem.quantity)
+          };
+        }
+        return b;
+      });
+
+      if (stockChanged) {
+        StorageService.saveBooks(updatedBooks);
+      }
+    }
+
+    // Auto-sync POS sale or order to Sanity CMS if enabled
+    const config = SanityService.getConfig();
+    if (config.syncPosSales && config.projectId && config.apiToken) {
+      SanityService.pushPosSale(order).catch(() => {});
+    }
+
     // Update customer stats
     const customers = StorageService.getCustomers();
-    const existingCust = customers.find(c => c.phone === order.phone);
+    const existingCust = customers.find(c => c.phone && c.phone === order.phone);
     if (existingCust) {
       existingCust.ordersCount += 1;
       existingCust.totalSpent += order.totalAmount;
       existingCust.lastOrderDate = new Date().toISOString().split('T')[0];
       StorageService.saveCustomers([...customers]);
-    } else {
+    } else if (order.customerName && order.phone) {
       StorageService.addCustomer({
         id: `cust-${Date.now()}`,
         name: order.customerName,
         phone: order.phone,
         email: order.email,
-        wilaya: order.wilayaName,
+        wilaya: order.wilayaName || 'مقر المعرض',
         ordersCount: 1,
         totalSpent: order.totalAmount,
         registeredDate: new Date().toISOString().split('T')[0],
