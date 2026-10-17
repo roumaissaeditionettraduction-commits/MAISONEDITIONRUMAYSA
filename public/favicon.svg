@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="96" fill="#1c1917" />
+  <path d="M112 144C112 126.327 126.327 112 144 112H240V384H144C126.327 384 112 369.673 112 352V144Z" fill="#fef3c7" stroke="#d97706" stroke-width="16" />
+  <path d="M400 144C400 126.327 385.673 112 368 112H272V384H368C385.673 384 400 369.673 400 352V144Z" fill="#fef3c7" stroke="#d97706" stroke-width="16" />
+  <line x1="256" y1="104" x2="256" y2="392" stroke="#b45309" stroke-width="20" stroke-linecap="round" />
+  <line x1="148" y1="180" x2="216" y2="180" stroke="#b45309" stroke-width="10" stroke-linecap="round" />
+  <line x1="148" y1="220" x2="216" y2="220" stroke="#b45309" stroke-width="10" stroke-linecap="round" />
+  <line x1="148" y1="260" x2="196" y2="260" stroke="#b45309" stroke-width="10" stroke-linecap="round" />
+  <line x1="296" y1="180" x2="364" y2="180" stroke="#b45309" stroke-width="10" stroke-linecap="round" />
+  <line x1="296" y1="220" x2="364" y2="220" stroke="#b45309" stroke-width="10" stroke-linecap="round" />
+  <line x1="316" y1="260" x2="364" y2="260" stroke="#b45309" stroke-width="10" stroke-linecap="round" />
+  <path d="M256 360L232 416H280L256 360Z" fill="#d97706" />
+</svg>

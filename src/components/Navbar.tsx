@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ShoppingBag, ShieldCheck, BookOpen, Menu, X, ArrowLeft, MessageCircle } from 'lucide-react';
+import { ShoppingBag, ShieldCheck, BookOpen, Menu, X, ArrowLeft, MessageCircle, Download, Smartphone } from 'lucide-react';
 import { StoreSettings, SocialLinks } from '../types';
+import { usePwaInstall } from '../hooks/usePwaInstall';
 
 interface NavbarProps {
   cartCount: number;
@@ -31,6 +32,21 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dismissBanner, setDismissBanner] = useState(false);
+  const [showIosTip, setShowIosTip] = useState(false);
+
+  const { isInstallable, isInstalled, isIOS, triggerInstall } = usePwaInstall();
+
+  const handleInstallClick = async () => {
+    if (isIOS) {
+      setShowIosTip(true);
+      return;
+    }
+    const success = await triggerInstall();
+    if (!success && !isInstallable) {
+      // If browser doesn't support automatic prompt, show friendly tip
+      setShowIosTip(true);
+    }
+  };
 
   const handleOpenWhatsApp = () => {
     let cleanPhone = socialLinks.whatsappNumber.replace(/\D/g, '');
@@ -162,6 +178,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span>لوحة التحكم</span>
           </button>
 
+          {/* PWA Install Button */}
+          {!isInstalled && (
+            <button
+              onClick={handleInstallClick}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg transition-all whitespace-nowrap shadow-2xs active:scale-95"
+              title="تثبيت متجر دار رميسة كتطبيق PWA"
+            >
+              <Download className="w-3.5 h-3.5 text-amber-700" />
+              <span className="hidden sm:inline">تثبيت التطبيق</span>
+              <span className="sm:hidden">تثبيت</span>
+            </button>
+          )}
+
           {/* Cart button */}
           <button
             onClick={onOpenCart}
@@ -235,6 +264,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               <MessageCircle className="w-4 h-4 text-emerald-600" />
             </button>
             <div className="pt-2 border-t border-stone-200 space-y-2">
+              {!isInstalled && (
+                <button
+                  onClick={() => { handleInstallClick(); setMobileMenuOpen(false); }}
+                  className="w-full text-right py-2.5 px-3 rounded-md bg-amber-50 text-amber-900 border border-amber-300 font-bold flex items-center justify-between"
+                >
+                  <span>تثبيت تطبيق دار رميسة</span>
+                  <Download className="w-4 h-4 text-amber-700" />
+                </button>
+              )}
+
               <button
                 onClick={() => { onNavigatePos(); setMobileMenuOpen(false); }}
                 className="w-full text-right py-2.5 px-3 rounded-md bg-emerald-800 text-white font-bold flex items-center justify-between shadow-2xs"
@@ -252,6 +291,37 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </div>
           </nav>
+        </div>
+      )}
+
+      {/* iOS Safari Home Screen Guide Modal */}
+      {showIosTip && (
+        <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 text-right space-y-4 shadow-2xl border border-stone-200 animate-in fade-in">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+              <span className="font-bold text-sm text-stone-900 flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-amber-600" />
+                <span>تثبيت التطبيق على آيفون / آيباد</span>
+              </span>
+              <button onClick={() => setShowIosTip(false)} className="p-1 rounded text-stone-400 hover:text-stone-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-stone-700 leading-relaxed">
+              لتثبيت متجر دار رميسة كتطبيق مستقل على شاشة هاتفك:
+            </p>
+            <ol className="text-xs text-stone-800 space-y-2 list-decimal list-inside pr-1 font-medium">
+              <li>اضغط على زر المشاركة <strong>(Share / مربع به سهم للأعلى)</strong> في متصفح سفاري.</li>
+              <li>مرر للأسفل واختر <strong>"إضافة إلى الشاشة الرئيسية" (Add to Home Screen)</strong>.</li>
+              <li>اضغط <strong>"إضافة" (Add)</strong> في الزاوية العلوية لتثبيت التطبيق فوراً.</li>
+            </ol>
+            <button
+              onClick={() => setShowIosTip(false)}
+              className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-colors"
+            >
+              حسناً، فهمت
+            </button>
+          </div>
         </div>
       )}
     </header>
