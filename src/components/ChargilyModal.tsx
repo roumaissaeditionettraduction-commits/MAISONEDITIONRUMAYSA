@@ -3,6 +3,7 @@ import { ShieldCheck, CreditCard, Lock, CheckCircle, ArrowRight, Loader2, X, Ale
 import { Order, ChargilyConfig } from '../types';
 import { StorageService } from '../services/storage';
 import { PixelService } from '../services/pixelService';
+import { EpubService } from '../services/epubService';
 
 interface ChargilyModalProps {
   order: Order | null;
@@ -62,6 +63,13 @@ export const ChargilyModal: React.FC<ChargilyModalProps> = ({
 
       StorageService.addOrder(completedOrder);
       PixelService.trackPurchase(completedOrder.orderNumber, completedOrder.totalAmount, 'chargily', completedOrder.items.length);
+
+      // Immediately license ePub files for paid customer
+      completedOrder.items.forEach(item => {
+        if (item.format === 'epub') {
+          EpubService.markEpubAsPaid(item.bookId);
+        }
+      });
 
       onSuccess(completedOrder);
     }, 1800);

@@ -15,8 +15,88 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cairo:wght@300;400;500;600;700;800&family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+      html, body {
+        -webkit-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+      }
+      input, textarea, [contenteditable="true"] {
+        -webkit-user-select: text !important;
+        -moz-user-select: text !important;
+        -ms-user-select: text !important;
+        user-select: text !important;
+      }
+    </style>
   </head>
   <body class="bg-stone-50 text-stone-900 font-sans antialiased selection:bg-amber-100 selection:text-amber-900">
+    <script>
+      (function() {
+        // التحقق من الرابط أو التخزين لمعرفة هل أنت الأدمن
+        var isAdmin = window.location.href.includes('admin') || 
+                      window.location.href.includes('dashboard') ||
+                      localStorage.getItem('user_role') === 'admin' ||
+                      localStorage.getItem('roumaissa_admin_auth_v1') === 'authenticated_roumaissa_admin';
+        
+        if (!isAdmin) {
+          // منع التحديد والنسخ والزر الأيمن فوراً للزوار
+          document.addEventListener('contextmenu', function(e) {
+            var target = e.target;
+            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+            e.preventDefault();
+          }, true);
+
+          document.addEventListener('copy', function(e) {
+            var target = e.target;
+            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+            e.preventDefault();
+          }, true);
+
+          document.addEventListener('paste', function(e) {
+            var target = e.target;
+            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+            e.preventDefault();
+          }, true);
+
+          document.addEventListener('keydown', function(e) {
+            var target = e.target;
+            var isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+            if (isInput) return;
+            // منع أزرار Ctrl+C و Ctrl+V و Ctrl+U و F12 على الكمبيوتر
+            if (e.ctrlKey && (e.keyCode === 67 || e.keyCode === 86 || e.keyCode === 85 || e.keyCode === 73)) {
+              e.preventDefault();
+            }
+          }, true);
+        } else {
+          // إلغاء المنع تماماً وإتاحة الحرية للأدمن
+          document.documentElement.style.setProperty('user-select', 'auto', 'important');
+          document.documentElement.style.setProperty('-webkit-user-select', 'auto', 'important');
+          if (document.body) {
+            document.body.style.setProperty('user-select', 'auto', 'important');
+            document.body.style.setProperty('-webkit-user-select', 'auto', 'important');
+          }
+        }
+
+        // استماع للتغييرات في الرابط أو تسجيل الدخول لإلغاء القفل فوراً عند دخول الأدمن
+        function syncAdminStatus() {
+          var adminNow = window.location.href.includes('admin') || 
+                         window.location.href.includes('dashboard') ||
+                         localStorage.getItem('user_role') === 'admin' ||
+                         localStorage.getItem('roumaissa_admin_auth_v1') === 'authenticated_roumaissa_admin';
+          if (adminNow) {
+            document.documentElement.style.setProperty('user-select', 'auto', 'important');
+            document.documentElement.style.setProperty('-webkit-user-select', 'auto', 'important');
+            if (document.body) {
+              document.body.style.setProperty('user-select', 'auto', 'important');
+              document.body.style.setProperty('-webkit-user-select', 'auto', 'important');
+            }
+          }
+        }
+        window.addEventListener('hashchange', syncAdminStatus);
+        window.addEventListener('roumaissa-storage-updated', syncAdminStatus);
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

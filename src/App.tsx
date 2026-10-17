@@ -8,6 +8,7 @@ import {
 import { Book, Category, OrderItem, Order, Wilaya, AbandonedCart, Customer, Article, VideoItem, SocialLinks } from './types';
 import { StorageService } from './services/storage';
 import { PixelService } from './services/pixelService';
+import { EpubService } from './services/epubService';
 
 import { Navbar } from './components/Navbar';
 import { BookCard } from './components/BookCard';
@@ -289,6 +290,14 @@ export default function App() {
     setCartItems([]);
     setConfirmedOrder(completedOrder);
     setIsConfirmationModalOpen(true);
+    // Mark ePub items as licensed and paid via Chargily
+    if (completedOrder.items) {
+      completedOrder.items.forEach(item => {
+        if (item.format === 'epub') {
+          EpubService.markEpubAsPaid(item.bookId);
+        }
+      });
+    }
   };
 
   // Admin Navigation Auth
@@ -882,6 +891,7 @@ export default function App() {
       <EpubReaderModal
         book={activeEpubBook}
         onClose={() => setActiveEpubBook(null)}
+        onBuyEpub={(b) => handleBuyNowDirect(b, 'epub')}
       />
 
       {/* Article Reader Modal (Copy-Protected) */}

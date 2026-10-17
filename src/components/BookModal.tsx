@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, BookOpen, ShoppingBag, Download, Star, ShieldCheck, Check, Truck, Share2 } from 'lucide-react';
+import { X, BookOpen, ShoppingBag, Download, Star, ShieldCheck, Check, Truck, Share2, Lock, AlertCircle, CreditCard } from 'lucide-react';
 import { Book } from '../types';
+import { EpubService } from '../services/epubService';
 
 interface BookModalProps {
   book: Book | null;
@@ -23,6 +24,27 @@ export const BookModal: React.FC<BookModalProps> = ({
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'summary' | 'toc' | 'sample'>('summary');
   const [copied, setCopied] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [paymentWarning, setPaymentWarning] = useState<string | null>(null);
+
+  const access = EpubService.verifyEpubAccess(book.id);
+
+  const handleDownloadEpub = () => {
+    const check = EpubService.verifyEpubAccess(book.id);
+    if (!check.authorized) {
+      setPaymentWarning("عذراً، يجب إتمام عملية الشراء ودفع مستحقات الكتاب لتتمكن من تحميل نسخة الـ EPUB المرخصة.");
+      return;
+    }
+
+    const res = EpubService.downloadEpubFile(book, check.isAdmin ? 'مدير دار رميسة (Admin)' : 'قارئ مرخص');
+    if (res.success) {
+      setDownloadSuccess(true);
+      setPaymentWarning(null);
+      setTimeout(() => setDownloadSuccess(false), 3000);
+    } else {
+      setPaymentWarning(res.error || "عذراً، يجب إتمام عملية الشراء ودفع مستحقات الكتاب لتتمكن من تحميل نسخة الـ EPUB المرخصة.");
+    }
+  };
 
   const price = selectedFormat === 'print' ? book.pricePrint : book.priceEpub;
   const effectiveStock = book.stockCount !== undefined ? book.stockCount : book.stock;
@@ -130,16 +152,120 @@ export const BookModal: React.FC<BookModalProps> = ({
               </div>
             </div>
 
-            {/* Quick Digital Preview / Reader CTA */}
+            {/* Digital ePub Download Component & In-Browser Reader */}
             {book.hasEpub && (
-              <button
-                type="button"
-                onClick={() => onOpenReader(book)}
-                className="w-full max-w-[280px] py-2.5 px-4 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-xs"
-              >
-                <BookOpen className="w-4 h-4 text-amber-700" />
-                <span>فتح القارئ الإلكتروني ePub وتصفح العينة</span>
-              </button>
+              <div className="w-full max-w-[280px] space-y-2.5">
+                {/* Download Button Component with Strict Payment Guard */}
+                <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2 text-right">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-stone-800">تحميل ملف ePub:</span>
+                    {access.isAdmin ? (
+                      <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-300 flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                        صلاحية الأدمن
+                      </span>
+                    ) : access.hasPaid ? (
+                      <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-300 flex items-center gap-1">
+                        <Check className="w-3 h-3 text-emerald-600" />
+                        ترخيص مدفوع
+                      </span>
+                    ) : (
+                      <span className="bg-rose-100 text-rose-800 px-2 py-0.5 rounded text-[10px] font-bold border border-rose-300 flex items-center gap-1">
+                        <Lock className="w-3 h-3 text-rose-600" />
+                        مقفل (يتطلب الشراء)
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="text-[10px] text-stone-500 font-mono">
+                    ملف: {book.epubFileName || 'ramad_alandalus_roumaissa.epub'} ({book.epubFileSize || '3.8 MB'})
+                  </div>
+
+                  {/* Button Component: No direct <a> link, disabled for visitors until paid, full access for admin */}
+                  <button
+                    type="button"
+                    onClick={handleDownloadEpub}
+                    disabled={!access.authorized}
+                    className={`w-full py-2.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-xs ${
+                      !access.authorized
+                        ? 'bg-stone-200/90 text-stone-400 border border-stone-300 cursor-not-allowed opacity-75'
+                        : downloadSuccess
+                        ? 'bg-emerald-600 text-white'
+                        : access.isAdmin
+                        ? 'bg-emerald-700 hover:bg-emerald-800 text-white active:scale-95 cursor-pointer'
+                        : 'bg-amber-600 hover:bg-amber-700 text-white active:scale-95 cursor-pointer'
+                    }`}
+                    title={
+                      !access.authorized
+                        ? 'عذراً، يجب إتمام عملية الشراء ودفع مستحقات الكتاب لتتمكن من تحميل نسخة الـ EPUB المرخصة.'
+                        : access.isAdmin
+                        ? 'تحميل واختبار الملف بصلاحية مدير دار رميسة'
+                        : 'تحميل ملف ePub المرخص'
+                    }
+                  >
+                    {!access.authorized ? (
+                      <>
+                        <Lock className="w-4 h-4 text-rose-600" />
+                        <span>تحميل ملف .epub (مقفل حتى الدفع)</span>
+                      </>
+                    ) : downloadSuccess ? (
+                      <>
+                        <Check className="w-4 h-4 text-white" />
+                        <span>تم تجهيز وبدء تحميل ePub!</span>
+                      </>
+                    ) : access.isAdmin ? (
+                      <>
+                        <Download className="w-4 h-4 text-emerald-200" />
+                        <span>تحميل ملف .epub (حصري للمسؤول)</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 text-white" />
+                        <span>تحميل نسخة ePub المرخصة</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Warning banner when payment is not completed */}
+                  {!access.authorized && (
+                    <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-rose-900 text-xs text-right leading-relaxed font-medium space-y-2 animate-in fade-in">
+                      <div className="flex items-start gap-1.5">
+                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                        <span>عذراً، يجب إتمام عملية الشراء ودفع مستحقات الكتاب لتتمكن من تحميل نسخة الـ EPUB المرخصة.</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedFormat('epub');
+                          onBuyNow(book, 'epub');
+                          onClose();
+                        }}
+                        className="w-full py-1.5 px-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-xs active:scale-95"
+                      >
+                        <CreditCard className="w-3.5 h-3.5" />
+                        <span>دفع مستحقات الكتاب عبر Chargily ({book.priceEpub.toLocaleString('ar-DZ')} دج)</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {access.isAdmin && (
+                    <div className="p-2 bg-emerald-50 border border-emerald-200 rounded text-[11px] text-emerald-900 flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>صلاحيات المسؤول مفعلة: متاح لك فحص وتحميل الملف بحرية كاملة دون قيود الدفع.</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Digital Preview / Reader CTA */}
+                <button
+                  type="button"
+                  onClick={() => onOpenReader(book)}
+                  className="w-full py-2.5 px-4 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-xs"
+                >
+                  <BookOpen className="w-4 h-4 text-amber-700" />
+                  <span>فتح القارئ الإلكتروني ePub وتصفح العينة</span>
+                </button>
+              </div>
             )}
 
             {/* Physical Specs Strip */}

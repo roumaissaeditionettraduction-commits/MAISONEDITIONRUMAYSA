@@ -1,5 +1,5 @@
-import React from 'react';
-import { CheckCircle2, Download, BookOpen, Printer, X, Truck, ShieldCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle2, Download, BookOpen, Printer, X, Truck, ShieldCheck, Lock, AlertCircle } from 'lucide-react';
 import { Order, Book } from '../types';
 import { EpubService } from '../services/epubService';
 import { StorageService } from '../services/storage';
@@ -22,6 +22,10 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
   const books = StorageService.getBooks();
   const epubItems = order.items.filter(i => i.format === 'epub');
   const printItems = order.items.filter(i => i.format === 'print');
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  const isAdmin = EpubService.isAdminUser();
+  const isPaidOrder = order.paymentStatus === 'paid' || order.orderStatus === 'delivered' || !!order.chargilyPaymentId || isAdmin;
 
   const handlePrint = () => {
     window.print();
@@ -29,8 +33,19 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
 
   const handleDownloadEpub = (bookId: string) => {
     const book = books.find(b => b.id === bookId);
-    if (book) {
-      EpubService.downloadEpubFile(book, order.customerName, order.orderNumber);
+    if (!book) return;
+
+    const access = EpubService.verifyEpubAccess(book.id);
+    if (!access.authorized && !isPaidOrder) {
+      setDownloadError("عذراً، يجب إتمام عملية الشراء ودفع مستحقات الكتاب لتتمكن من تحميل نسخة الـ EPUB المرخصة.");
+      return;
+    }
+
+    const res = EpubService.downloadEpubFile(book, order.customerName, order.orderNumber);
+    if (!res.success) {
+      setDownloadError(res.error || "عذراً، يجب إتمام عملية الشراء ودفع مستحقات الكتاب لتتمكن من تحميل نسخة الـ EPUB المرخصة.");
+    } else {
+      setDownloadError(null);
     }
   };
 
@@ -84,12 +99,30 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                  <span>الكتب الرقمية ePub المشتراة جاهزة للتحميل والقراءة:</span>
+                  <span>الكتب الرقمية ePub:</span>
                 </span>
-                <span className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded font-mono font-bold">
-                  ترخيص مدفوع
-                </span>
+                {isAdmin ? (
+                  <span className="text-[10px] bg-emerald-700 text-white px-2 py-0.5 rounded font-bold">
+                    صلاحية الأدمن
+                  </span>
+                ) : isPaidOrder ? (
+                  <span className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded font-bold">
+                    ترخيص مدفوع (Chargily)
+                  </span>
+                ) : (
+                  <span className="text-[10px] bg-rose-600 text-white px-2 py-0.5 rounded font-bold flex items-center gap-1">
+                    <Lock className="w-3 h-3" />
+                    مقفل (يتطلب إتمام الدفع)
+                  </span>
+                )}
               </div>
+
+              {downloadError && (
+                <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-900 rounded-lg text-xs font-bold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{downloadError}</span>
+                </div>
+              )}
 
               <div className="space-y-2">
                 {epubItems.map((item, idx) => (
@@ -110,10 +143,24 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleDownloadEpub(item.bookId)}
-                        className="flex-1 sm:flex-none px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                        disabled={!isPaidOrder}
+                        className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-xs ${
+                          !isPaidOrder
+                            ? 'bg-stone-200 text-stone-400 cursor-not-allowed opacity-75 border border-stone-300'
+                            : 'bg-amber-600 hover:bg-amber-700 text-white active:scale-95 cursor-pointer'
+                        }`}
                       >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>تحميل ملف .epub</span>
+                        {!isPaidOrder ? (
+                          <>
+                            <Lock className="w-3.5 h-3.5 text-rose-600" />
+                            <span>التحميل مقفل</span>
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-3.5 h-3.5" />
+                            <span>تحميل ملف .epub</span>
+                          </>
+                        )}
                       </button>
                       <button
                         type="button"
