@@ -59,16 +59,15 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({
 
   // Cart operations
   const addToCart = (book: Book) => {
-    if (book.stock <= 0) {
-      alert(`عذراً، كتاب "${book.title}" نفد من المخزون تماماً.`);
+    const effectiveStock = book.stockCount !== undefined ? book.stockCount : book.stock;
+    if (effectiveStock <= 0) {
       return;
     }
 
     const existingIndex = posCart.findIndex(item => item.bookId === book.id);
     if (existingIndex > -1) {
       const currentQty = posCart[existingIndex].quantity;
-      if (currentQty >= book.stock) {
-        alert(`تم الوصول للحد الأقصى المتوفر بالمخزون (${book.stock} نسخة).`);
+      if (currentQty >= effectiveStock) {
         return;
       }
       const updated = [...posCart];
@@ -96,8 +95,8 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({
     }
     const item = posCart[index];
     const originalBook = books.find(b => b.id === item.bookId);
-    if (originalBook && newQty > originalBook.stock) {
-      alert(`الكمية القصوى المتوفرة لهذا الكتاب هي ${originalBook.stock} نسخة.`);
+    const maxStock = originalBook ? (originalBook.stockCount !== undefined ? originalBook.stockCount : originalBook.stock) : 999;
+    if (originalBook && newQty > maxStock) {
       return;
     }
     const updated = [...posCart];
@@ -209,7 +208,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-stone-100 flex flex-col text-right font-sans select-none">
+    <div className="min-h-screen bg-stone-100 flex flex-col text-right font-sans">
       
       {/* Toast Notification */}
       {syncToast && (
@@ -330,7 +329,8 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
               {filteredBooks.map((book) => {
                 const cartQty = posCart.find(i => i.bookId === book.id)?.quantity || 0;
-                const isOutOfStock = book.stock <= 0;
+                const effectiveStock = book.stockCount !== undefined ? book.stockCount : book.stock;
+                const isOutOfStock = effectiveStock <= 0;
 
                 return (
                   <button
@@ -377,13 +377,13 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({
                         {/* Stock indicator badge */}
                         <div className="absolute bottom-1 right-1">
                           <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold shadow-xs ${
-                            book.stock > 5
+                            effectiveStock > 5
                               ? 'bg-stone-900/80 text-emerald-300 backdrop-blur-xs'
-                              : book.stock > 0
+                              : effectiveStock > 0
                               ? 'bg-amber-600 text-white'
                               : 'bg-rose-600 text-white'
                           }`}>
-                            {book.stock > 0 ? `${book.stock} متاح` : 'نفد'}
+                            {effectiveStock > 0 ? `${effectiveStock} متاح` : 'نفد'}
                           </span>
                         </div>
                       </div>

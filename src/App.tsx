@@ -137,6 +137,88 @@ export default function App() {
     };
   }, []);
 
+  // Smart Dynamic Anti-Copy, Selection & Context-Menu Protection (Admin Exclusive Bypass)
+  useEffect(() => {
+    const checkIsAdmin = (): boolean => {
+      return isAdminLoggedIn || StorageService.isAdminLoggedIn();
+    };
+
+    // 1. Dynamic CSS Class management on body and documentElement
+    const applyProtectionClasses = () => {
+      const isAdmin = checkIsAdmin();
+      if (isAdmin) {
+        document.body.classList.remove('protected-anti-copy');
+        document.body.classList.add('admin-unrestricted-mode');
+        document.documentElement.classList.remove('protected-anti-copy');
+        document.documentElement.classList.add('admin-unrestricted-mode');
+      } else {
+        document.body.classList.add('protected-anti-copy');
+        document.body.classList.remove('admin-unrestricted-mode');
+        document.documentElement.classList.add('protected-anti-copy');
+        document.documentElement.classList.remove('admin-unrestricted-mode');
+      }
+    };
+
+    applyProtectionClasses();
+
+    // 2. Event Listeners for Copy, Paste, Context Menu, and SelectStart
+    const handleCopy = (e: ClipboardEvent) => {
+      const isAdmin = checkIsAdmin();
+      if (!isAdmin) {
+        const target = e.target as HTMLElement | null;
+        const isEditable = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+        if (!isEditable) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    const handlePaste = (e: ClipboardEvent) => {
+      const isAdmin = checkIsAdmin();
+      if (!isAdmin) {
+        const target = e.target as HTMLElement | null;
+        const isEditable = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+        if (!isEditable) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    const handleContextMenu = (e: MouseEvent) => {
+      const isAdmin = checkIsAdmin();
+      if (!isAdmin) {
+        const target = e.target as HTMLElement | null;
+        const isEditable = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+        if (!isEditable) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    const handleSelectStart = (e: Event) => {
+      const isAdmin = checkIsAdmin();
+      if (!isAdmin) {
+        const target = e.target as HTMLElement | null;
+        const isEditable = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+        if (!isEditable) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    window.addEventListener('copy', handleCopy);
+    window.addEventListener('paste', handlePaste);
+    window.addEventListener('contextmenu', handleContextMenu);
+    window.addEventListener('selectstart', handleSelectStart);
+
+    return () => {
+      window.removeEventListener('copy', handleCopy);
+      window.removeEventListener('paste', handlePaste);
+      window.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('selectstart', handleSelectStart);
+    };
+  }, [isAdminLoggedIn]);
+
   // Cart Management
   const handleAddToCart = (book: Book, format: 'print' | 'epub', quantity: number = 1) => {
     const price = format === 'print' ? book.pricePrint : book.priceEpub;

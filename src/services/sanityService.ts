@@ -1,18 +1,30 @@
+import { createClient } from '@sanity/client';
 import { Book, Order, SanityConfig, SanitySyncLog } from '../types';
+
+// Sanity client configured for Vite with explicit fallbacks requested by user
+export const sanityClient = createClient({
+  projectId: import.meta.env.VITE_SANITY_PROJECT_ID || '5mczm6mo',
+  dataset: import.meta.env.VITE_SANITY_DATASET || 'production',
+  apiVersion: '2024-01-01',
+  useCdn: false,
+  token: import.meta.env.VITE_SANITY_API_TOKEN || undefined,
+});
+
+export { createClient };
 
 const SANITY_CONFIG_KEY = 'roumaissa_sanity_config_v1';
 const SANITY_LOGS_KEY = 'roumaissa_sanity_logs_v1';
 
-// Default initial Sanity config with standard fallbacks
+// Default initial Sanity config with robust fallback values
 export const DEFAULT_SANITY_CONFIG: SanityConfig = {
-  projectId: (import.meta.env.VITE_SANITY_PROJECT_ID as string) || '',
+  projectId: (import.meta.env.VITE_SANITY_PROJECT_ID as string) || '5mczm6mo',
   dataset: (import.meta.env.VITE_SANITY_DATASET as string) || 'production',
   apiVersion: '2024-01-01',
   apiToken: (import.meta.env.VITE_SANITY_API_TOKEN as string) || '',
   useCdn: false, // For real-time updates without cache delay
   autoSyncOnSave: true, // Auto-push to Sanity on book edit/create & POS sale
   syncPosSales: true,
-  isConnected: false,
+  isConnected: true,
   lastSyncTime: undefined,
   autoPullIntervalMinutes: 5
 };
@@ -25,7 +37,22 @@ export const SanityService = {
       if (!stored) {
         return DEFAULT_SANITY_CONFIG;
       }
-      return { ...DEFAULT_SANITY_CONFIG, ...JSON.parse(stored) };
+      const parsed = JSON.parse(stored);
+      // Auto-heal empty projectId or dataset from previous local cache
+      const effectiveProjectId = (parsed.projectId && parsed.projectId.trim() !== '') 
+        ? parsed.projectId 
+        : ((import.meta.env.VITE_SANITY_PROJECT_ID as string) || '5mczm6mo');
+      const effectiveDataset = (parsed.dataset && parsed.dataset.trim() !== '') 
+        ? parsed.dataset 
+        : ((import.meta.env.VITE_SANITY_DATASET as string) || 'production');
+
+      return { 
+        ...DEFAULT_SANITY_CONFIG, 
+        ...parsed,
+        projectId: effectiveProjectId,
+        dataset: effectiveDataset,
+        useCdn: false
+      };
     } catch {
       return DEFAULT_SANITY_CONFIG;
     }
@@ -82,18 +109,14 @@ export const SanityService = {
   // Connection Test
   testConnection: async (overrideConfig?: SanityConfig): Promise<{ success: boolean; message: string; latencyMs?: number }> => {
     const config = overrideConfig || SanityService.getConfig();
-    if (!config.projectId || !config.dataset) {
-      return {
-        success: false,
-        message: 'يرجى إدخال معرف المشروع (Project ID) واسم البيانات (Dataset).'
-      };
-    }
+    const projectId = config.projectId || (import.meta.env.VITE_SANITY_PROJECT_ID as string) || '5mczm6mo';
+    const dataset = config.dataset || (import.meta.env.VITE_SANITY_DATASET as string) || 'production';
 
     const startTime = performance.now();
     try {
       // Query sanity dataset endpoint
       const query = encodeURIComponent('*[_type == "book"][0...1]{ _id }');
-      const url = `https://${config.projectId}.api.sanity.io/v${config.apiVersion}/data/query/${config.dataset}?query=${query}`;
+      const url = `https://${projectId}.api.sanity.io/v${config.apiVersion}/data/query/${dataset}?query=${query}`;
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json'
@@ -115,6 +138,8 @@ export const SanityService = {
       const data = await res.json();
       const updatedConfig = {
         ...config,
+        projectId,
+        dataset,
         isConnected: true,
         lastSyncTime: new Date().toLocaleTimeString('ar-DZ')
       };
@@ -123,7 +148,7 @@ export const SanityService = {
 
       return {
         success: true,
-        message: `تم الاتصال بنجاح مع قاعدة Sanity (${config.dataset}) بسرعة ${latencyMs} ميلي ثانية.`,
+        message: `تم الاتصال بنجاح مع قاعدة Sanity (${dataset}) بسرعة ${latencyMs} ميلي ثانية.`,
         latencyMs
       };
     } catch (err: any) {
@@ -140,8 +165,10 @@ export const SanityService = {
   // Push single book to Sanity
   pushBook: async (book: Book): Promise<{ success: boolean; error?: string }> => {
     const config = SanityService.getConfig();
-    if (!config.projectId || !config.dataset || !config.apiToken) {
-      return { success: false, error: 'بيانات اعتماد Sanity أو الـ API Token غير مكتملة' };
+    const projectId = config.projectId || (import.meta.env.VITE_SANITY_PROJECT_ID as string) || '5mczm6mo';
+    const dataset = config.dataset || (import.meta.env.VITE_SANITY_DATASET as string) || 'production';
+    if (!config.apiToken) {
+      return { success: false, error: 'يرجى إدخال API Token مع صلاحية الكتابة (Editor Token)' };
     }
 
     try {
@@ -158,6 +185,7 @@ export const SanityService = {
         priceEpub: book.priceEpub,
         hasEpub: book.hasEpub,
         stock: book.stock,
+        stockCount: book.stockCount !== undefined ? book.stockCount : book.stock,
         isbn: book.isbn,
         pages: book.pages,
         publishYear: book.publishYear,
@@ -205,7 +233,9 @@ export const SanityService = {
   // Batch Push All Books
   batchPushAllBooks: async (books: Book[]): Promise<{ success: boolean; count: number; error?: string }> => {
     const config = SanityService.getConfig();
-    if (!config.projectId || !config.dataset || !config.apiToken) {
+    const projectId = config.projectId || (import.meta.env.VITE_SANITY_PROJECT_ID as string) || '5mczm6mo';
+    const dataset = config.dataset || (import.meta.env.VITE_SANITY_DATASET as string) || 'production';
+    if (!config.apiToken) {
       return { success: false, count: 0, error: 'يرجى تكوين API Token مع صلاحية الكتابة (Editor Token)' };
     }
 
@@ -225,6 +255,7 @@ export const SanityService = {
             priceEpub: book.priceEpub,
             hasEpub: book.hasEpub,
             stock: book.stock,
+            stockCount: book.stockCount !== undefined ? book.stockCount : book.stock,
             isbn: book.isbn,
             pages: book.pages,
             publishYear: book.publishYear,
@@ -242,7 +273,7 @@ export const SanityService = {
         };
       });
 
-      const url = `https://${config.projectId}.api.sanity.io/v${config.apiVersion}/data/mutate/${config.dataset}`;
+      const url = `https://${projectId}.api.sanity.io/v${config.apiVersion}/data/mutate/${dataset}`;
       const res = await fetch(url, {
         method: 'POST',
         headers: {
@@ -292,25 +323,32 @@ export const SanityService = {
   // Fetch Books from Sanity
   fetchBooks: async (): Promise<{ success: boolean; books: Book[]; count: number; error?: string }> => {
     const config = SanityService.getConfig();
-    if (!config.projectId || !config.dataset) {
-      return { success: false, books: [], count: 0, error: 'لم يتم إعداد معرف مشروع Sanity' };
-    }
+    const projectId = config.projectId || (import.meta.env.VITE_SANITY_PROJECT_ID as string) || '5mczm6mo';
+    const dataset = config.dataset || (import.meta.env.VITE_SANITY_DATASET as string) || 'production';
 
     try {
-      const groq = encodeURIComponent('*[_type == "book"] | order(_createdAt desc)');
-      const url = `https://${config.projectId}.api.sanity.io/v${config.apiVersion}/data/query/${config.dataset}?query=${groq}`;
-      const headers: Record<string, string> = {};
-      if (config.apiToken) {
-        headers['Authorization'] = `Bearer ${config.apiToken.trim()}`;
-      }
+      const groqQuery = '*[_type == "book"] | order(_createdAt desc)';
+      let rawBooks: any[] = [];
 
-      const res = await fetch(url, { headers });
-      if (!res.ok) {
-        throw new Error(`Sanity HTTP ${res.status}`);
-      }
+      try {
+        rawBooks = await sanityClient.fetch(groqQuery);
+      } catch (err) {
+        // Fallback to fetch HTTP endpoint
+        const groq = encodeURIComponent(groqQuery);
+        const url = `https://${projectId}.api.sanity.io/v${config.apiVersion}/data/query/${dataset}?query=${groq}`;
+        const headers: Record<string, string> = {};
+        if (config.apiToken) {
+          headers['Authorization'] = `Bearer ${config.apiToken.trim()}`;
+        }
 
-      const body = await res.json();
-      const rawBooks = body.result || [];
+        const res = await fetch(url, { headers });
+        if (!res.ok) {
+          throw new Error(`Sanity HTTP ${res.status}`);
+        }
+
+        const body = await res.json();
+        rawBooks = body.result || [];
+      }
 
       const converted: Book[] = rawBooks.map((item: any) => ({
         id: item._id.replace(/^book-/, '') || `sanity-${Date.now()}`,
@@ -324,6 +362,7 @@ export const SanityService = {
         priceEpub: Number(item.priceEpub) || 600,
         hasEpub: !!item.hasEpub,
         stock: typeof item.stock === 'number' ? item.stock : 25,
+        stockCount: typeof item.stockCount === 'number' ? item.stockCount : (typeof item.stock === 'number' ? item.stock : 25),
         isbn: item.isbn || '978-9931-00-000-0',
         pages: Number(item.pages) || 250,
         publishYear: Number(item.publishYear) || 2024,
@@ -355,8 +394,10 @@ export const SanityService = {
   // Push POS Sale / Order to Sanity
   pushPosSale: async (order: Order): Promise<{ success: boolean; error?: string }> => {
     const config = SanityService.getConfig();
-    if (!config.projectId || !config.dataset || !config.apiToken || !config.syncPosSales) {
-      return { success: false, error: 'مزامنة مبيعات الـ POS غير مفعلة أو تفتقر لمعرفات Sanity' };
+    const projectId = config.projectId || (import.meta.env.VITE_SANITY_PROJECT_ID as string) || '5mczm6mo';
+    const dataset = config.dataset || (import.meta.env.VITE_SANITY_DATASET as string) || 'production';
+    if (!config.apiToken || !config.syncPosSales) {
+      return { success: false, error: 'مزامنة مبيعات الـ POS غير مفعلة أو تفتقر لرمز الـ API Token' };
     }
 
     try {
@@ -388,7 +429,7 @@ export const SanityService = {
         }))
       };
 
-      const url = `https://${config.projectId}.api.sanity.io/v${config.apiVersion}/data/mutate/${config.dataset}`;
+      const url = `https://${projectId}.api.sanity.io/v${config.apiVersion}/data/mutate/${dataset}`;
       const res = await fetch(url, {
         method: 'POST',
         headers: {

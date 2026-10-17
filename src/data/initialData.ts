@@ -109,6 +109,7 @@ export const INITIAL_BOOKS: Book[] = [
       'خاتمة: شمس لا تغيب عن الذاكرة'
     ],
     stock: 45,
+    stockCount: 45,
     isBestseller: true,
     isFeatured: true,
     tags: ['رواية تاريخية', 'الأندلس', 'أدب جزائري', 'إصدار حصري']
@@ -143,6 +144,7 @@ export const INITIAL_BOOKS: Book[] = [
       'الخاتمة: نحو نظرية نقدية للترجمة في الجنوب العالمي'
     ],
     stock: 30,
+    stockCount: 30,
     isNewRelease: true,
     isFeatured: true,
     tags: ['فلسفة', 'ترجمة', 'فكر معاصر', 'دراسات عليا']
@@ -176,6 +178,7 @@ export const INITIAL_BOOKS: Book[] = [
       'الباب الرابع: فهرس الوثائق النادرة المسترجعة'
     ],
     stock: 22,
+    stockCount: 22,
     isBestseller: true,
     tags: ['تاريخ الجزائر', 'مخطوطات', 'تراث', 'توثيق']
   },
@@ -208,6 +211,7 @@ export const INITIAL_BOOKS: Book[] = [
       'المشهد الرابع: لقاءات الغروب على مدرجات البحر'
     ],
     stock: 50,
+    stockCount: 50,
     isNewRelease: true,
     tags: ['رواية اجتماعية', 'القصبة', 'الجزائر العاصمة', 'ذاكرة']
   },
@@ -242,6 +246,7 @@ export const INITIAL_BOOKS: Book[] = [
       'الرسالة الرابعة: العزلة بوصفها محراباً للإبداع'
     ],
     stock: 65,
+    stockCount: 65,
     isBestseller: true,
     tags: ['ترجمات', 'فن الكتابة', 'نقد أدبي', 'إلهام']
   },
@@ -273,7 +278,8 @@ export const INITIAL_BOOKS: Book[] = [
       'الفصل الثاني: سيميائية التلقي والتأويل عند إيكو',
       'الفصل الثالث: تطبيقات عملية على نماذج من الرواية المغاربية'
     ],
-    stock: 18,
+    stock: 0,
+    stockCount: 0,
     tags: ['جامعي', 'نقد أدبي', 'سيميائيات', 'أبحاث']
   }
 ];

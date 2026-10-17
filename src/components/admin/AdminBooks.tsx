@@ -77,6 +77,7 @@ export const AdminBooks: React.FC<AdminBooksProps> = ({
       excerpt: '',
       toc: ['المقدمة', 'الفصل الأول', 'الفصل الثاني', 'الخاتمة'],
       stock: 50,
+      stockCount: 50,
       isBestseller: false,
       isNewRelease: true,
       tags: ['دار رميسة']
@@ -85,7 +86,7 @@ export const AdminBooks: React.FC<AdminBooksProps> = ({
   };
 
   const handleOpenEdit = (book: Book) => {
-    setEditingBook({ ...book });
+    setEditingBook({ ...book, stockCount: book.stockCount !== undefined ? book.stockCount : book.stock });
     setIsEditing(true);
   };
 
@@ -100,7 +101,13 @@ export const AdminBooks: React.FC<AdminBooksProps> = ({
     e.preventDefault();
     if (!editingBook || !editingBook.title || !editingBook.author) return;
 
-    const fullBook = editingBook as Book;
+    const stockVal = Number(editingBook.stockCount !== undefined ? editingBook.stockCount : editingBook.stock) || 0;
+    const fullBook: Book = {
+      ...editingBook,
+      stock: stockVal,
+      stockCount: stockVal
+    } as Book;
+
     const existing = books.find(b => b.id === fullBook.id);
     if (existing) {
       StorageService.updateBook(fullBook);
@@ -541,8 +548,11 @@ export const AdminBooks: React.FC<AdminBooksProps> = ({
                   </label>
                   <input
                     type="number"
-                    value={editingBook.stock || 0}
-                    onChange={(e) => setEditingBook({ ...editingBook, stock: Number(e.target.value) })}
+                    value={editingBook.stockCount !== undefined ? editingBook.stockCount : (editingBook.stock || 0)}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setEditingBook({ ...editingBook, stock: val, stockCount: val });
+                    }}
                     className="w-full p-2.5 rounded-lg border border-stone-300 font-mono"
                   />
                 </div>

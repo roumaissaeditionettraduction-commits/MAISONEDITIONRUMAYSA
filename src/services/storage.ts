@@ -55,7 +55,14 @@ function save<T>(key: string, data: T): void {
 
 export const StorageService = {
   // Books
-  getBooks: (): Book[] => load<Book[]>(STORAGE_KEYS.BOOKS, INITIAL_BOOKS),
+  getBooks: (): Book[] => {
+    const books = load<Book[]>(STORAGE_KEYS.BOOKS, INITIAL_BOOKS);
+    if (!Array.isArray(books) || books.length === 0) {
+      save(STORAGE_KEYS.BOOKS, INITIAL_BOOKS);
+      return INITIAL_BOOKS;
+    }
+    return books;
+  },
   saveBooks: (books: Book[]) => save(STORAGE_KEYS.BOOKS, books),
   addBook: (book: Book) => {
     const books = StorageService.getBooks();
@@ -126,9 +133,12 @@ export const StorageService = {
         const orderItem = order.items.find(i => i.bookId === b.id && i.format === 'print');
         if (orderItem) {
           stockChanged = true;
+          const currentCount = b.stockCount !== undefined ? b.stockCount : b.stock;
+          const newCount = Math.max(0, currentCount - orderItem.quantity);
           return {
             ...b,
-            stock: Math.max(0, b.stock - orderItem.quantity)
+            stock: newCount,
+            stockCount: newCount
           };
         }
         return b;

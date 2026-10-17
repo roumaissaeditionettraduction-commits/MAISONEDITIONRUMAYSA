@@ -25,6 +25,8 @@ export const BookModal: React.FC<BookModalProps> = ({
   const [copied, setCopied] = useState(false);
 
   const price = selectedFormat === 'print' ? book.pricePrint : book.priceEpub;
+  const effectiveStock = book.stockCount !== undefined ? book.stockCount : book.stock;
+  const isInStock = effectiveStock > 0;
 
   const handleShare = () => {
     navigator.clipboard?.writeText(window.location.href);
@@ -150,9 +152,18 @@ export const BookModal: React.FC<BookModalProps> = ({
                 <span>نوع الورق:</span>
                 <span className="font-medium text-stone-900">شمواه إيطالي 70غ خفيف</span>
               </div>
-              <div className="flex justify-between">
-                <span>المتوفر بالمخزن:</span>
-                <span className="font-medium text-emerald-700">{book.stock} نسخة ورقية جاهزة للشحن</span>
+              <div className="flex justify-between items-center">
+                <span>حالة التوفر:</span>
+                <span
+                  className={`text-[11px] font-bold px-2 py-0.5 rounded flex items-center gap-1 border ${
+                    isInStock
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-rose-50 text-rose-700 border-rose-200'
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${isInStock ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                  <span>{isInStock ? `متوفر (${effectiveStock} بالمخزن)` : 'نفذت الكمية'}</span>
+                </span>
               </div>
             </div>
           </div>

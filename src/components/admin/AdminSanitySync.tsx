@@ -58,7 +58,8 @@ export const AdminSanitySync: React.FC<AdminSanitySyncProps> = ({
   // Push all books
   const handleBatchPushBooks = async () => {
     if (!config.projectId || !config.apiToken) {
-      alert('يرجى أولاً إدخال معرف المشروع (Project ID) والـ API Token مع صلاحية الكتابة.');
+      setActionMessage('يرجى أولاً إدخال معرف المشروع (Project ID) والـ API Token مع صلاحية الكتابة.');
+      setTimeout(() => setActionMessage(null), 4000);
       return;
     }
     setIsBatchPushing(true);
@@ -78,7 +79,8 @@ export const AdminSanitySync: React.FC<AdminSanitySyncProps> = ({
   // Pull books from Sanity
   const handlePullBooks = async () => {
     if (!config.projectId) {
-      alert('يرجى إدخال معرف المشروع أولاً.');
+      setActionMessage('يرجى إدخال معرف المشروع أولاً.');
+      setTimeout(() => setActionMessage(null), 4000);
       return;
     }
     setIsPulling(true);

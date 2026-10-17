@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ShieldCheck, Share2, Clock, Calendar, Lock, Check, AlertTriangle, Eye } from 'lucide-react';
 import { Article, SocialLinks } from '../types';
+import { StorageService } from '../services/storage';
 
 interface ArticleReaderModalProps {
   article: Article | null;
@@ -18,7 +19,8 @@ export const ArticleReaderModal: React.FC<ArticleReaderModalProps> = ({
   const [copyWarning, setCopyWarning] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  const isProtected = article.isCopyProtected && socialLinks.antiCopyGlobalEnabled;
+  const isAdmin = StorageService.isAdminLoggedIn();
+  const isProtected = !isAdmin && article.isCopyProtected && socialLinks.antiCopyGlobalEnabled;
 
   // Anti-Copy Event Handlers
   useEffect(() => {

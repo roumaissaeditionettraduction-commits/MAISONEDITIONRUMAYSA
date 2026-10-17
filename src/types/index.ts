@@ -27,6 +27,7 @@ export interface Book {
   excerpt: string;
   toc: string[];
   stock: number;
+  stockCount?: number;
   isBestseller?: boolean;
   isNewRelease?: boolean;
   isFeatured?: boolean;

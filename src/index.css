@@ -60,3 +60,37 @@
     width: 100%;
   }
 }
+
+/* Anti-copy protection for standard visitors */
+body.protected-anti-copy,
+html.protected-anti-copy,
+.protected-anti-copy {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+/* Allow visitors to fill in text inputs and forms */
+body.protected-anti-copy input,
+body.protected-anti-copy textarea,
+body.protected-anti-copy [contenteditable="true"] {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+}
+
+/* Admin Unrestricted Mode: Complete freedom to copy, paste, select, and right-click */
+body.admin-unrestricted-mode,
+html.admin-unrestricted-mode,
+.admin-unrestricted-mode,
+body.admin-unrestricted-mode * {
+  -webkit-user-select: auto !important;
+  -moz-user-select: auto !important;
+  -ms-user-select: auto !important;
+  user-select: auto !important;
+  -webkit-touch-callout: default !important;
+}
+

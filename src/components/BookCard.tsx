@@ -18,8 +18,16 @@ export const BookCard: React.FC<BookCardProps> = ({
   const [selectedFormat, setSelectedFormat] = useState<'print' | 'epub'>('print');
   const [addedAnimation, setAddedAnimation] = useState(false);
 
+  // Compute stock status using the new stockCount field with fallback to stock
+  const effectiveStock = book.stockCount !== undefined ? book.stockCount : book.stock;
+  const isInStock = effectiveStock > 0;
+  const isOutOfStockForFormat = selectedFormat === 'print' && !isInStock;
+
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isOutOfStockForFormat) {
+      return;
+    }
     onAddToCart(book, selectedFormat);
     setAddedAnimation(true);
     setTimeout(() => setAddedAnimation(false), 1200);
@@ -34,6 +42,20 @@ export const BookCard: React.FC<BookCardProps> = ({
     >
       {/* 3D Realistic Book Cover Showcase */}
       <div className="relative aspect-[3/4] w-full max-w-[240px] mx-auto mb-4 perspective-800 flex items-center justify-center">
+        {/* Stock Status Badge on Cover */}
+        <div
+          data-testid="stock-status-badge"
+          className={`absolute top-2 right-2 z-20 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm backdrop-blur-md border transition-all ${
+            isInStock
+              ? 'bg-emerald-600/90 text-white border-emerald-400/50'
+              : 'bg-rose-700/95 text-white border-rose-400/50'
+          }`}
+          title={`حالة التوفر: ${isInStock ? 'متوفر' : 'نفذت الكمية'}`}
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${isInStock ? 'bg-emerald-200 animate-pulse' : 'bg-rose-200'}`} />
+          <span>{isInStock ? 'متوفر' : 'نفذت الكمية'}</span>
+        </div>
+
         <div
           className="book-cover-3d w-full h-full rounded-r-md rounded-l-xs overflow-hidden flex flex-col justify-between relative shadow-md"
           style={{
@@ -127,8 +149,21 @@ export const BookCard: React.FC<BookCardProps> = ({
       <div className="space-y-1.5 text-right flex-1 flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between text-xs text-stone-500 mb-1">
-            <span className="font-medium text-stone-600">{book.author}</span>
-            <div className="flex items-center gap-1 text-amber-600 font-mono text-[11px]">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-medium text-stone-700">{book.author}</span>
+              {/* Stock Status Badge */}
+              <span
+                className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 border ${
+                  isInStock
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-rose-50 text-rose-700 border-rose-200'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${isInStock ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                <span>{isInStock ? 'متوفر' : 'نفذت الكمية'}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-amber-600 font-mono text-[11px] shrink-0">
               <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
               <span>{book.rating.toFixed(1)}</span>
               <span className="text-stone-400">({book.reviewsCount})</span>
@@ -178,7 +213,9 @@ export const BookCard: React.FC<BookCardProps> = ({
           <div className="flex items-center justify-between gap-2">
             <div>
               <div className="text-xs text-stone-500">
-                {selectedFormat === 'print' ? 'نسخة ورقية مع توصيل' : 'تحميل ePub فوري'}
+                {selectedFormat === 'print'
+                  ? (isInStock ? 'نسخة ورقية مع توصيل' : 'نفذت النسخ الورقية')
+                  : 'تحميل ePub فوري'}
               </div>
               <div className="font-mono text-base sm:text-lg font-bold text-stone-950 tabular-nums">
                 {currentPrice.toLocaleString('ar-DZ')} <span className="text-xs font-normal text-stone-600">دج</span>
@@ -187,16 +224,21 @@ export const BookCard: React.FC<BookCardProps> = ({
 
             <button
               type="button"
+              disabled={isOutOfStockForFormat}
               onClick={handleQuickAdd}
               className={`px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95 ${
-                addedAnimation
+                isOutOfStockForFormat
+                  ? 'bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed'
+                  : addedAnimation
                   ? 'bg-emerald-600 text-white'
                   : selectedFormat === 'epub'
                   ? 'bg-amber-600 hover:bg-amber-700 text-white'
                   : 'bg-stone-900 hover:bg-stone-800 text-white'
               }`}
             >
-              {addedAnimation ? (
+              {isOutOfStockForFormat ? (
+                <span>نفذت الكمية</span>
+              ) : addedAnimation ? (
                 <>
                   <Check className="w-3.5 h-3.5" />
                   <span>تمت الإضافة!</span>
